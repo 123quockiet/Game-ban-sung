@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <style>
+        body { margin: 0; overflow: hidden; background: #1a1a1a; font-family: Arial; }
+        canvas { display: block; }
+        #menu {
+            position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+            text-align: center; color: white;
+        }
+        button {
+            padding: 15px 40px; font-size: 20px; background: #2196F3;
+            color: white; border: none; border-radius: 10px; cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div id="menu">
+        <h1>CHIẾN BINH 2D</h1>
+        <button onclick="startGame()">VÀO CHƠI</button>
+    </div>
+    <canvas id="gameCanvas"></canvas>
+
+<script>
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+let gameActive = false;
+let player = { x: 0, y: 0, hp: 20 };
+let enemies = [];
+let obstacles = [];
+
+function setup() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    player.x = canvas.width / 2;
+    player.y = canvas.height - 100;
+    
+    // Tạo vật cản
+    for(let i=0; i<5; i++) {
+        obstacles.push({
+            x: Math.random() * (canvas.width-100),
+            y: Math.random() * (canvas.height-300) + 100,
+            w: 80, h: 80
+        });
+    }
+}
+
+class Enemy {
+    constructor() {
+        this.reset();
+    }
+    reset() {
+        this.x = Math.random() * canvas.width;
+        this.y = -50;
+        this.hp = 10;
+        this.speed = 1 + Math.random() * 2;
+    }
+    update() {
+        let dx = player.x - this.x;
+        let dy = player.y - this.y;
+        let dist = Math.sqrt(dx*dx + dy*dy);
+        this.x += (dx/dist) * this.speed;
+        this.y += (dy/dist) * this.speed;
+
+        if(dist < 30) {
+            player.hp -= 0.05; // Địch gây dame 0.5 mỗi giây
+        }
+    }
+    draw() {
+        ctx.fillStyle = '#FF9800';
+        ctx.fillRect(this.x-20, this.y-20, 40, 40);
+        // Máu địch
+        ctx.fillStyle = 'red';
+        ctx.fillRect(this.x-20, this.y-30, 40, 5);
+        ctx.fillStyle = 'lime';
+        ctx.fillRect(this.x-20, this.y-30, (this.hp/10)*40, 5);
+    }
+}
+
+function startGame() {
+    document.getElementById('menu').style.display = 'none';
+    gameActive = true;
+    player.hp = 20;
+    enemies = [new Enemy(), new Enemy(), new Enemy()];
+    animate();
+}
+
+// Xử lý bắn (Chạm màn hình)
+window.addEventListener('touchstart', (e) => {
+    if(!gameActive) return;
+    let touchX = e.touches[0].clientX;
+    let touchY = e.touches[0].clientY;
+    
+    enemies.forEach(en => {
+        let dist = Math.sqrt(Math.pow(touchX - en.x, 2) + Math.pow(touchY - en.y, 2));
+        if(dist < 50) {
+            en.hp -= 1; // Dame nhân vật là 1
+            if(en.hp <= 0) en.reset();
+        }
+    });
+});
+
+function animate() {
+    if(!gameActive) return;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Vẽ vật cản
+    ctx.fillStyle = '#444';
+    obstacles.forEach(o => ctx.fillRect(o.x, o.y, o.w, o.h));
+
+    // Nhân vật
+    ctx.fillStyle = '#2196F3';
+    ctx.beginPath();
+    ctx.arc(player.x, player.y, 25, 0, Math.PI*2);
+    ctx.fill();
+
+    // Kẻ địch
+    enemies.forEach(en => {
+        en.update();
+        en.draw();
+    });
+
+    // UI Máu nhân vật
+    ctx.fillStyle = 'black';
+    ctx.fillRect(20, 20, 200, 20);
+    ctx.fillStyle = 'red';
+    ctx.fillRect(20, 20, (player.hp/20)*200, 20);
+
+    if(player.hp <= 0) {
+        alert("GAME OVER!");
+        location.reload();
+        return;
+    }
+    requestAnimationFrame(animate);
+}
+
+setup();
+</script>
+</body>
+</html>
